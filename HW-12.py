@@ -29,6 +29,9 @@ class Field:
     @value.setter
     def value(self, new_value):
         self._value = new_value
+    
+    def __str__(self):
+        return self.value
 
 class Name(Field):
     def __init__(self, value):
@@ -116,10 +119,14 @@ class Record:
         if next_birthday:
             days_to_birthday = (next_birthday - today).days
             return days_to_birthday
+    
+    def __str__(self):
+        return f"{self.name} : {','.join([str(p) for p in self.phones])} {str(self.birthday) if self.birthday else ''}"
 
 class AddressBook(UserDict):
     def add_record(self, record):
         self.data[record.name.value] = record
+        return f"Record with name {str(record.name)} add"
 
     def save(self, file_path):
         with open(file_path, 'wb') as file:
@@ -139,20 +146,29 @@ class AddressBook(UserDict):
             return True
         return False
     
-    def find_records_by_name(self, name):
-        found_records = []
-        for record_name in self.data.keys():
-            if record_name.lower() == name.lower():
-                found_records.append(self.data[record_name])
-        return found_records
+    def find(self, param):
+        result = []
+        for rec in self.data.values():
+            if param.lower() in str(rec).lower():
+                result.append(rec)
+        if result:
+            return '\n'.join([str(r) for r in result])
+        return f"No contact found with param {param}"
+    
+    # def find_records_by_name(self, name):
+    #     found_records = []
+    #     for record_name in self.data.keys():
+    #         if record_name.lower() == name.lower():
+    #             found_records.append(self.data[record_name])
+    #     return found_records
 
-    def find_records_by_phone(self, phone):
-        found_records = []
-        for record in self.data.values():
-            for record_phone in record.phones:
-                if record_phone.value == phone:
-                    found_records.append(record)
-        return found_records
+    # def find_records_by_phone(self, phone):
+    #     found_records = []
+    #     for record in self.data.values():
+    #         for record_phone in record.phones:
+    #             if record_phone.value == phone:
+    #                 found_records.append(record)
+    #     return found_records
 
     def iterator(self, n=2):
         num_items = len(self.data)
@@ -165,6 +181,11 @@ class AddressBook(UserDict):
             i += n
         if len(result) < n:
             yield []
+    
+    def __str__(self):
+        if self.data:
+            return "\n".join([str(r) for r in self.data.values()])
+        return "No contacts yet"
 
 @input_error
 def add_contact(user_input, address_book):
@@ -179,23 +200,24 @@ def add_contact(user_input, address_book):
         else:
             record_birthday = None
         record = Record(record_name, Phone(phone), record_birthday)
-        address_book.add_record(record)
+        return address_book.add_record(record)
     else:
       raise ValueError
 
 def show_all_contacts(address_book):
-    if address_book:
-        for name, record in address_book.items():
-            phone_numbers = ', '.join([phone.value for phone in record.phones])
-            birthday = record.birthday.value.strftime('%Y-%m-%d') if record.birthday else ''
-            days_to_birthday = record.days_to_birthday()
-            if days_to_birthday:
-                print(f'{name}: {phone_numbers}  {birthday} \
-                       {days_to_birthday} days until birthday')
-            else:
-                print(f'{name}: {phone_numbers} {birthday}')
-    else:
-        print('There are no contacts.')
+    return str(address_book)
+    # if address_book:
+    #     for name, record in address_book.items():
+    #         phone_numbers = ', '.join([phone.value for phone in record.phones])
+    #         birthday = record.birthday.value.strftime('%Y-%m-%d') if record.birthday else ''
+    #         days_to_birthday = record.days_to_birthday()
+    #         if days_to_birthday:
+    #             print(f'{name}: {phone_numbers}  {birthday} \
+    #                    {days_to_birthday} days until birthday')
+    #         else:
+    #             print(f'{name}: {phone_numbers} {birthday}')
+    # else:
+    #     print('There are no contacts.')
 
 def remove_contact(user_input, address_book):
     match = re.match(r'remove (\w+)', user_input)
@@ -208,25 +230,28 @@ def remove_contact(user_input, address_book):
 
 @input_error
 def find_contacts(user_input, address_book):
-    match = re.match(r'find (\w+)', user_input)
-    if match:
-        name_or_phone = match.group(1)
-        records_by_name = address_book.find_records_by_name(name_or_phone)
-        records_by_phone = address_book.find_records_by_phone(name_or_phone)
-        if records_by_name or records_by_phone:
-            print('Contacts found:')
-            for record in records_by_name + records_by_phone:
-                for phone in record.phones:
-                    if record.birthday:
-                        print(f"{record.name.value} - {phone.value}")
-                        print(f"{record.name.value}'s birthday - "
-                              f"{record.birthday.value.strftime('%Y-%m-%d')}")
-                    else:
-                        print(f"{record.name.value} - {phone.value}")
-        else:
-            print('No contacts were found.')
-    else:
-        raise KeyError
+    if len(user_input) < 3:
+        return "Find param must bu greater the three symbols"
+    return address_book.find(user_input)
+    # match = re.match(r'find (\w+)', user_input)
+    # if match:
+    #     name_or_phone = match.group(1)
+    #     records_by_name = address_book.find_records_by_name(name_or_phone)
+    #     records_by_phone = address_book.find_records_by_phone(name_or_phone)
+    #     if records_by_name or records_by_phone:
+    #         print('Contacts found:')
+    #         for record in records_by_name + records_by_phone:
+    #             for phone in record.phones:
+    #                 if record.birthday:
+    #                     print(f"{record.name.value} - {phone.value}")
+    #                     print(f"{record.name.value}'s birthday - "
+    #                           f"{record.birthday.value.strftime('%Y-%m-%d')}")
+    #                 else:
+    #                     print(f"{record.name.value} - {phone.value}")
+    #     else:
+    #         print('No contacts were found.')
+    # else:
+    #     raise KeyError
     
 def search_contacts(user_input, address_book):
     match = re.match(r'search (\w+)', user_input)
@@ -302,13 +327,14 @@ def main():
         if user_input.lower() == 'hello':
             print('How can I help you?')
         elif user_input.lower().startswith('add'):
-            add_contact(user_input, address_book)
+            print(add_contact(user_input, address_book))
         elif user_input.lower() == 'show all':
-            show_all_contacts(address_book)
+            print(show_all_contacts(address_book))
         elif user_input.lower().startswith('remove'):
             remove_contact(user_input, address_book)
         elif user_input.lower().startswith('find'):
-            find_contacts(user_input, address_book)
+            data = user_input.removeprefix('find').strip()
+            print(find_contacts(data, address_book))
         elif user_input.lower().startswith('search'):
             search_contacts(user_input, address_book)
         elif user_input.lower() == 'show in parts':
